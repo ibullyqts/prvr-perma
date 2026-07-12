@@ -92,7 +92,7 @@ async def run_strike(cookie, target_id):
                     }
 
                     log("Action: Sending Message " + (messageCount + 1) + "/5...");
-                    const base = "RNK ᴛʀʏ. ᴍᴀ ғʟᴏᴡᴇʀ. " + flowers[Math.floor(Math.random()*flowers.length)] + " ʏᴀ ғɪʀᴇ 🔥??";
+                    const base = "Yᴀsʜ - Hᴀʀɪsʜ - Mᴇᴍᴀx ᴛʀʏ. ᴍᴀ ғʟᴏᴡᴇʀ. " + flowers[Math.floor(Math.random()*flowers.length)] + " ʏᴀ ғɪʀᴇ 🔥??";
                     sendText(base + "\\n".repeat(15) + base + "\\n".repeat(15) + base);
                     messageCount++;
                     setTimeout(pulse, Math.floor(Math.random() * 4000) + 1000);
