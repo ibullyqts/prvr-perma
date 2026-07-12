@@ -44,7 +44,6 @@ async def run_strike(cookie, target_id):
         sid = re.search(r'sessionid=([^;]+)', cookie).group(1) if 'sessionid=' in cookie else cookie
         await context.add_cookies([{'name': 'sessionid', 'value': sid.strip(), 'domain': '.instagram.com', 'path': '/', 'secure': True}])
 
-        # Explicitly receiving data as a single object config to prevent argument merging anomalies
         strike_script = """
             (config) => {
                 const msgText = config.msg;
@@ -89,13 +88,16 @@ async def run_strike(cookie, target_id):
                         rest(); return;
                     }
 
+                    // Pick ONE unique emoji to use for this entire 7-line block
+                    const messageEmoji = getUniqueEmoji();
+                    
                     let lines = [];
                     for(let i = 0; i < 7; i++) {
-                        lines.push(msgText + " " + getUniqueEmoji());
+                        lines.push(msgText + " " + messageEmoji);
                     }
                     const finalBlock = lines.join("\\n".repeat(2));
                     
-                    log("Action: Sending Message " + (count + 1) + "/5...");
+                    log("Action: Sending Message " + (count + 1) + "/5 (Emoji: " + messageEmoji + ")...");
                     sendText(finalBlock);
                     count++;
                     setTimeout(pulse, 5000 + Math.random() * 2000);
@@ -108,8 +110,6 @@ async def run_strike(cookie, target_id):
         page.on("framenavigated", lambda f: f.evaluate("window.addEventListener('message', e => { if(e.data.type==='LOG') console.log(e.data.text); })"))
         
         await page.goto(f"https://www.instagram.com/direct/t/{target_id}/", wait_until="networkidle")
-        
-        # Pass variables wrapped cleanly inside an object dictionary mapping
         await page.evaluate(strike_script, {"msg": MESSAGE_BASE, "sig": SIGNATURE})
         
         await asyncio.sleep(21000)
