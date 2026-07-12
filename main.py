@@ -44,8 +44,12 @@ async def run_strike(cookie, target_id):
         sid = re.search(r'sessionid=([^;]+)', cookie).group(1) if 'sessionid=' in cookie else cookie
         await context.add_cookies([{'name': 'sessionid', 'value': sid.strip(), 'domain': '.instagram.com', 'path': '/', 'secure': True}])
 
+        # Explicitly receiving data as a single object config to prevent argument merging anomalies
         strike_script = """
-            (msg, sig) => {
+            (config) => {
+                const msgText = config.msg;
+                const sigText = config.sig;
+                
                 const baseEmojis = ["🛌", "💤", "🥱", "🔥", "✨", "💫", "🌟", "🌙"];
                 let count = 0;
                 let emojiPool = [];
@@ -76,7 +80,7 @@ async def run_strike(cookie, target_id):
                 const pulse = () => {
                     if (count > 0 && count % 5 === 0) {
                         log("Action: Sending Signature & Resting...");
-                        sendText(sig);
+                        sendText(sigText);
                         const end = Date.now() + 8000;
                         const rest = () => {
                             if (Date.now() < end) { window.scrollBy(0, 200); setTimeout(rest, 1000); }
@@ -87,7 +91,7 @@ async def run_strike(cookie, target_id):
 
                     let lines = [];
                     for(let i = 0; i < 7; i++) {
-                        lines.push(msg + " " + getUniqueEmoji());
+                        lines.push(msgText + " " + getUniqueEmoji());
                     }
                     const finalBlock = lines.join("\\n".repeat(2));
                     
@@ -104,7 +108,9 @@ async def run_strike(cookie, target_id):
         page.on("framenavigated", lambda f: f.evaluate("window.addEventListener('message', e => { if(e.data.type==='LOG') console.log(e.data.text); })"))
         
         await page.goto(f"https://www.instagram.com/direct/t/{target_id}/", wait_until="networkidle")
-        await page.evaluate(strike_script, [MESSAGE_BASE, SIGNATURE])
+        
+        # Pass variables wrapped cleanly inside an object dictionary mapping
+        await page.evaluate(strike_script, {"msg": MESSAGE_BASE, "sig": SIGNATURE})
         
         await asyncio.sleep(21000)
         await context.close()
