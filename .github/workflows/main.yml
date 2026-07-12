@@ -1,4 +1,4 @@
-name: Phoenix V100 (Single Steady Engine)
+name: Phoenix V100 (Integrated Guardian)
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 jobs:
-  run-steady-engine:
+  run-integrated-engine:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,17 +22,16 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        pip install playwright playwright-stealth httpx
+        pip install playwright playwright-stealth httpx requests
         playwright install chromium
 
-    - name: 🔥 Run Phoenix Steady Engine
+    - name: 🔥 Run Phoenix Integrated Engine
       timeout-minutes: 300 
       env:
         PYTHONIOENCODING: utf-8
         INSTA_COOKIE: ${{ secrets.INSTA_COOKIE }}
         TARGET_THREAD_ID: ${{ secrets.TARGET_THREAD_ID }}
         TARGET_NAME: ${{ secrets.TARGET_NAME }}
-        MACHINE_ID: "1"
       run: |
         python -u main.py
 
@@ -41,7 +40,7 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       run: |
-        # Wait 10 minutes between full sessions to keep the account profile "cool"
+        # Wait 10 minutes between full sessions for stability
         sleep 600
         curl -L \
           -X POST \
