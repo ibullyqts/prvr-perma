@@ -1,0 +1,51 @@
+name: Phoenix V100 (Single Steady Engine)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  run-steady-engine:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies
+      run: |
+        pip install playwright playwright-stealth httpx
+        playwright install chromium
+
+    - name: 🔥 Run Phoenix Steady Engine
+      timeout-minutes: 300 
+      env:
+        PYTHONIOENCODING: utf-8
+        INSTA_COOKIE: ${{ secrets.INSTA_COOKIE }}
+        TARGET_THREAD_ID: ${{ secrets.TARGET_THREAD_ID }}
+        TARGET_NAME: ${{ secrets.TARGET_NAME }}
+        MACHINE_ID: "1"
+      run: |
+        python -u main.py
+
+    - name: Trigger Next Run
+      if: ${{ !cancelled() }}
+      env:
+        GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      run: |
+        # Wait 10 minutes between full sessions to keep the account profile "cool"
+        sleep 600
+        curl -L \
+          -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer $GH_TOKEN" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/workflows/main.yml/dispatches" \
+          -d '{"ref":"main"}'
