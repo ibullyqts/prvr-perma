@@ -88,7 +88,6 @@ async def run_strike(cookie, target_id):
                         rest(); return;
                     }
 
-                    // Pick ONE unique emoji to use for this entire 7-line block
                     const messageEmoji = getUniqueEmoji();
                     
                     let lines = [];
@@ -109,7 +108,15 @@ async def run_strike(cookie, target_id):
         page.on("console", lambda msg: print(f"[BROWSER] {msg.text}"))
         page.on("framenavigated", lambda f: f.evaluate("window.addEventListener('message', e => { if(e.data.type==='LOG') console.log(e.data.text); })"))
         
-        await page.goto(f"https://www.instagram.com/direct/t/{target_id}/", wait_until="networkidle")
+        # FIX: Swapped out networkidle to avoid infinite timeout hanging
+        print("[STRIKER] Opening direct thread page...")
+        await page.goto(f"https://www.instagram.com/direct/t/{target_id}/", wait_until="commit")
+        
+        # Explicitly wait for the chat UI textbox element to load safely
+        print("[STRIKER] Waiting for chat UI textbox to become ready...")
+        await page.wait_for_selector('div[role="textbox"], [contenteditable="true"]', timeout=30000)
+        
+        # Fire automation script
         await page.evaluate(strike_script, {"msg": MESSAGE_BASE, "sig": SIGNATURE})
         
         await asyncio.sleep(21000)
