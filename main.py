@@ -3,34 +3,13 @@ import asyncio
 import os
 import re
 import sys
-import uuid
-import requests
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 
 # --- ⚙️ CONFIGURATION ---
 sys.stdout.reconfigure(encoding='utf-8')
 SIGNATURE = "༺ρ 𝕣 ꪜ 𝕣 अब्बू ☽༻"
-MESSAGE_BASE = "Yᴀsʜ - Hᴀʀɪsʜ Ƭяу мσм кє ѕαтн вєᴅ ᴍᴀỉɴ  ᴍᴀsᴛỉ кᴀяυggα"
-
-async def run_guardian(cookie, target_id):
-    """Monitors and secures the thread name via API."""
-    sid = re.search(r'sessionid=([^;]+)', cookie).group(1) if 'sessionid=' in cookie else cookie
-    session = requests.Session()
-    session.headers.update({"User-Agent": "Mozilla/5.0", "X-IG-App-ID": "936619743392459"})
-    session.cookies.set("sessionid", sid, domain=".instagram.com")
-    while True:
-        try:
-            resp = session.get(f"https://www.instagram.com/api/v1/direct_v2/threads/{target_id}/")
-            if resp.status_code == 200:
-                current_name = resp.json().get("thread", {}).get("thread_title", "")
-                if current_name != SIGNATURE:
-                    csrf = session.cookies.get("csrftoken", "")
-                    session.post(f"https://www.instagram.com/api/v1/direct_v2/threads/{target_id}/update_title/",
-                                 data={"title": SIGNATURE, "_csrftoken": csrf, "_uuid": str(uuid.uuid4())},
-                                 headers={"X-CSRFToken": csrf})
-        except: pass
-        await asyncio.sleep(300)
+MESSAGE_BASE = "ᴘʀᴀᴛɪᴋ-ᴠᴇᴇʀ-ꜱᴜʀᴀᴊ-ɴᴇᴍᴇꜱɪꜱ Ƭяу мσм кє ѕαтн вєᴅ ᴍᴀỉɴ  ᴍᴀsᴛỉ кᴀяυggα"
 
 async def run_strike(cookie, target_id):
     async with async_playwright() as p:
@@ -108,15 +87,12 @@ async def run_strike(cookie, target_id):
         page.on("console", lambda msg: print(f"[BROWSER] {msg.text}"))
         page.on("framenavigated", lambda f: f.evaluate("window.addEventListener('message', e => { if(e.data.type==='LOG') console.log(e.data.text); })"))
         
-        # FIX: Swapped out networkidle to avoid infinite timeout hanging
         print("[STRIKER] Opening direct thread page...")
         await page.goto(f"https://www.instagram.com/direct/t/{target_id}/", wait_until="commit")
         
-        # Explicitly wait for the chat UI textbox element to load safely
         print("[STRIKER] Waiting for chat UI textbox to become ready...")
         await page.wait_for_selector('div[role="textbox"], [contenteditable="true"]', timeout=30000)
         
-        # Fire automation script
         await page.evaluate(strike_script, {"msg": MESSAGE_BASE, "sig": SIGNATURE})
         
         await asyncio.sleep(21000)
@@ -126,7 +102,7 @@ async def main():
     cookie = os.environ.get("INSTA_COOKIE")
     tid = os.environ.get("TARGET_THREAD_ID")
     if cookie and tid:
-        await asyncio.gather(run_guardian(cookie, tid), run_strike(cookie, tid))
+        await run_strike(cookie, tid)
 
 if __name__ == "__main__":
     asyncio.run(main())
