@@ -30,6 +30,7 @@ async def run_strike(cookie, target_id):
                 
                 const baseEmojis = ["🛌", "💤", "🥱", "🔥", "✨", "💫", "🌟", "🌙"];
                 let emojiPool = [];
+                let messageSequenceCount = 0;
                 const log = (txt) => window.parent.postMessage({ type: 'LOG', text: txt }, '*');
 
                 const getUniqueEmoji = () => {
@@ -54,43 +55,44 @@ async def run_strike(cookie, target_id):
                     }
                 };
 
-                // Array of various user interactive behaviors
                 const humanActions = [
-                    // Action 0: Natural Micro-scroll down
                     () => {
                         log("Behavior: Skimming downward...");
-                        window.scrollBy({ top: Math.floor(Math.random() * 180) + 40, behavior: 'smooth' });
+                        window.scrollBy({ top: Math.floor(Math.random() * 140) + 40, behavior: 'smooth' });
                     },
-                    // Action 1: Micro-scroll up (checking previous logs)
                     () => {
                         log("Behavior: Looking back at earlier text...");
-                        window.scrollBy({ top: -Math.floor(Math.random() * 100), behavior: 'smooth' });
+                        window.scrollBy({ top: -Math.floor(Math.random() * 80), behavior: 'smooth' });
                     },
-                    // Action 2: Hover tracking / mouse jiggle simulations
                     () => {
-                        log("Behavior: Simulating finger drift/focus adjustments...");
+                        log("Behavior: Simulating screen interaction...");
                         const ev = new MouseEvent('mousemove', {
                             clientX: Math.floor(Math.random() * window.innerWidth),
                             clientY: Math.floor(Math.random() * window.innerHeight),
                             bubbles: true
                         });
                         document.dispatchEvent(ev);
-                    },
-                    // Action 3: Clear Textbox focus reset
-                    () => {
-                        log("Behavior: Toggling field focus...");
-                        const box = document.querySelector('div[role="textbox"]');
-                        if (box) { box.blur(); setTimeout(() => box.focus(), 200); }
                     }
                 ];
 
                 const runLoop = () => {
-                    // Decide completely dynamically what to do next
-                    // 70% chance to send message, 20% to do a random behavior step, 10% to push signature anchor
+                    // Safety Cooldown Brake: If we have sent 4 messages back-to-back, force a prolonged human idle state
+                    if (messageSequenceCount >= 4) {
+                        log("⚠️ Anti-429 Cooldown: Entering extended structural rest break...");
+                        messageSequenceCount = 0;
+                        
+                        // Pick a random interactive human behavior during the extended break
+                        humanActions[Math.floor(Math.random() * humanActions.length)]();
+                        
+                        // Hold execution entirely for 45 to 70 seconds to let the rate limit clear
+                        setTimeout(runLoop, 45000 + Math.random() * 25000);
+                        return;
+                    }
+
                     const roll = Math.random();
 
-                    if (roll < 0.70) {
-                        // Execution Step: Construct payload block
+                    if (roll < 0.60) {
+                        // Transmit Message Block
                         const messageEmoji = getUniqueEmoji();
                         let lines = [];
                         for(let i = 0; i < 7; i++) {
@@ -100,29 +102,30 @@ async def run_strike(cookie, target_id):
                         
                         log("Action: Transmitting primary content block...");
                         sendText(finalBlock);
+                        messageSequenceCount++;
                         
-                        // Set variable next steps between 4-8 seconds
-                        setTimeout(runLoop, 4000 + Math.random() * 4000);
+                        // Increased standard spacing delay: 12 to 22 seconds between message drops
+                        setTimeout(runLoop, 12000 + Math.random() * 10000);
 
-                    } else if (roll >= 0.70 && roll < 0.90) {
-                        // Interaction Step: Execute one of the randomized user interactions
+                    } else if (roll >= 0.60 && roll < 0.85) {
+                        // Execute passive look/scroll behavior step
                         const selectAction = humanActions[Math.floor(Math.random() * humanActions.length)];
                         selectAction();
                         
-                        // Fast reaction phase before re-evaluating loop sequence
-                        setTimeout(runLoop, 1500 + Math.random() * 2000);
+                        // Small variance pause
+                        setTimeout(runLoop, 4000 + Math.random() * 4000);
 
                     } else {
-                        // Verification Step: Append isolated signature anchor
+                        // Deploy Signature Token
                         log("Action: Deploying identity signature verify token...");
                         sendText(sigText);
+                        messageSequenceCount++;
                         
-                        // Longer dynamic pause representing a reading delay break
-                        setTimeout(runLoop, 6000 + Math.random() * 4000);
+                        // Mid-tier cooloff delay: 15 to 25 seconds
+                        setTimeout(runLoop, 15000 + Math.random() * 10000);
                     }
                 };
 
-                // Initialize processing lifecycle
                 runLoop();
             }
         """
@@ -138,7 +141,8 @@ async def run_strike(cookie, target_id):
         
         await page.evaluate(strike_script, {"msg": MESSAGE_BASE, "sig": SIGNATURE})
         
-        await asyncio.sleep(21000)
+        # Extended runtime execution buffer to match longer loop periods
+        await asyncio.sleep(45000)
         await context.close()
 
 async def main():
