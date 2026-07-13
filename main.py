@@ -29,8 +29,8 @@ async def run_strike(cookie, target_id):
                 const sigText = config.sig;
                 
                 const baseEmojis = ["🛌", "💤", "🥱", "🔥", "✨", "💫", "🌟", "🌙"];
+                let count = 0;
                 let emojiPool = [];
-                let messageSequenceCount = 0;
                 const log = (txt) => window.parent.postMessage({ type: 'LOG', text: txt }, '*');
 
                 const getUniqueEmoji = () => {
@@ -49,84 +49,38 @@ async def run_strike(cookie, target_id):
                         setTimeout(() => {
                             const btn = Array.from(document.querySelectorAll('div[role="button"], button'))
                                 .find(el => el.innerText === 'Send' || el.getAttribute('aria-label') === 'Send');
-                            if (btn) { btn.click(); log("Action: Sent input string."); }
-                            else { box.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true})); log("Action: Dispatched Enter fallback."); }
+                            if (btn) { btn.click(); log("Action: Button clicked."); }
+                            else { box.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true})); log("Action: Used Enter key."); }
                         }, 600);
                     }
                 };
 
-                const humanActions = [
-                    () => {
-                        log("Behavior: Skimming downward...");
-                        window.scrollBy({ top: Math.floor(Math.random() * 140) + 40, behavior: 'smooth' });
-                    },
-                    () => {
-                        log("Behavior: Looking back at earlier text...");
-                        window.scrollBy({ top: -Math.floor(Math.random() * 80), behavior: 'smooth' });
-                    },
-                    () => {
-                        log("Behavior: Simulating screen interaction...");
-                        const ev = new MouseEvent('mousemove', {
-                            clientX: Math.floor(Math.random() * window.innerWidth),
-                            clientY: Math.floor(Math.random() * window.innerHeight),
-                            bubbles: true
-                        });
-                        document.dispatchEvent(ev);
-                    }
-                ];
-
-                const runLoop = () => {
-                    // Safety Cooldown Brake: If we have sent 4 messages back-to-back, force a prolonged human idle state
-                    if (messageSequenceCount >= 4) {
-                        log("⚠️ Anti-429 Cooldown: Entering extended structural rest break...");
-                        messageSequenceCount = 0;
-                        
-                        // Pick a random interactive human behavior during the extended break
-                        humanActions[Math.floor(Math.random() * humanActions.length)]();
-                        
-                        // Hold execution entirely for 45 to 70 seconds to let the rate limit clear
-                        setTimeout(runLoop, 45000 + Math.random() * 25000);
-                        return;
-                    }
-
-                    const roll = Math.random();
-
-                    if (roll < 0.60) {
-                        // Transmit Message Block
-                        const messageEmoji = getUniqueEmoji();
-                        let lines = [];
-                        for(let i = 0; i < 7; i++) {
-                            lines.push(msgText + " " + messageEmoji);
-                        }
-                        const finalBlock = lines.join("\\n".repeat(2));
-                        
-                        log("Action: Transmitting primary content block...");
-                        sendText(finalBlock);
-                        messageSequenceCount++;
-                        
-                        // Increased standard spacing delay: 12 to 22 seconds between message drops
-                        setTimeout(runLoop, 12000 + Math.random() * 10000);
-
-                    } else if (roll >= 0.60 && roll < 0.85) {
-                        // Execute passive look/scroll behavior step
-                        const selectAction = humanActions[Math.floor(Math.random() * humanActions.length)];
-                        selectAction();
-                        
-                        // Small variance pause
-                        setTimeout(runLoop, 4000 + Math.random() * 4000);
-
-                    } else {
-                        // Deploy Signature Token
-                        log("Action: Deploying identity signature verify token...");
+                const pulse = () => {
+                    if (count > 0 && count % 5 === 0) {
+                        log("Action: Sending Signature & Resting...");
                         sendText(sigText);
-                        messageSequenceCount++;
-                        
-                        // Mid-tier cooloff delay: 15 to 25 seconds
-                        setTimeout(runLoop, 15000 + Math.random() * 10000);
+                        const end = Date.now() + 8000;
+                        const rest = () => {
+                            if (Date.now() < end) { window.scrollBy(0, 200); setTimeout(rest, 1000); }
+                            else { count = 0; pulse(); }
+                        };
+                        rest(); return;
                     }
-                };
 
-                runLoop();
+                    const messageEmoji = getUniqueEmoji();
+                    
+                    let lines = [];
+                    for(let i = 0; i < 7; i++) {
+                        lines.push(msgText + " " + messageEmoji);
+                    }
+                    const finalBlock = lines.join("\\n".repeat(2));
+                    
+                    log("Action: Sending Message " + (count + 1) + "/5 (Emoji: " + messageEmoji + ")...");
+                    sendText(finalBlock);
+                    count++;
+                    setTimeout(pulse, 5000 + Math.random() * 2000);
+                }
+                pulse();
             }
         """
         page = await context.new_page()
@@ -141,8 +95,7 @@ async def run_strike(cookie, target_id):
         
         await page.evaluate(strike_script, {"msg": MESSAGE_BASE, "sig": SIGNATURE})
         
-        # Extended runtime execution buffer to match longer loop periods
-        await asyncio.sleep(45000)
+        await asyncio.sleep(21000)
         await context.close()
 
 async def main():
