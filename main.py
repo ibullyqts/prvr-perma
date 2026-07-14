@@ -13,7 +13,6 @@ sys.stdout.reconfigure(encoding='utf-8')
 SIGNATURE = "༺ρ 𝕣 ꪜ 𝕣 अब्बू ☽༻"
 MESSAGE_LINE = "Yᴀsʜ - Hᴀʀɪsʜ - Mᴇᴍᴀx Ƭяу мσм кє ѕαтн вєᴅ ᴍᴀỉɴ  ᴍᴀsᴛỉ кᴀяυggᴀ 🌟"
 
-# --- 🛡️ NAME GUARDIAN ---
 async def run_name_guardian(sid, tid, sig):
     session = requests.Session()
     session.headers.update({"User-Agent": "Mozilla/5.0", "X-IG-App-ID": "936619743392459"})
@@ -30,85 +29,67 @@ async def run_name_guardian(sid, tid, sig):
         except: pass
         await asyncio.sleep(60)
 
-# --- 🔥 STRIKE ENGINE ---
 async def run_strike(cookie, target_id):
     async with async_playwright() as p:
         context = await p.chromium.launch_persistent_context(
             user_data_dir="n_1", headless=True, channel="chrome",
             user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15",
             viewport={'width': 375, 'height': 667},
-            args=["--disable-blink-features=AutomationControlled", "--no-sandbox", "--disable-gpu", "--excludeSwitches=enable-automation"]
+            args=["--disable-blink-features=AutomationControlled", "--no-sandbox", "--disable-gpu"]
         )
         await Stealth().apply_stealth_async(context)
         
+        # High-Frequency Input Engine
         strike_script = """
             (config) => {
-                const line = config.line;
-                const sigText = config.sig;
-                const RELOAD_INTERVAL = 60000; // 60 seconds forced reload
+                const msg = config.line;
+                const sig = config.sig;
+                const RELOAD_INTERVAL = 60000;
                 const startTime = Date.now();
-                
                 let count = 0;
-                const log = (txt) => window.parent.postMessage({ type: 'LOG', text: txt }, '*');
 
-                const sendText = (text) => {
+                const fastSend = (text) => {
                     const box = document.querySelector('div[role="textbox"], [contenteditable="true"]');
                     if (!box) return false;
-                    box.focus();
-                    box.innerHTML = '';
-                    const dt = new DataTransfer(); dt.setData('text/plain', text);
-                    box.dispatchEvent(new ClipboardEvent('paste', {clipboardData: dt, bubbles: true}));
-                    box.dispatchEvent(new Event('input', {bubbles: true}));
                     
-                    setTimeout(() => {
-                        const btn = Array.from(document.querySelectorAll('div[role="button"], button'))
-                            .find(el => el.innerText === 'Send' || el.getAttribute('aria-label') === 'Send');
-                        if (btn) btn.click();
-                        else box.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true}));
-                        log("Action: Message Sent.");
-                    }, 800);
+                    // Directly modify React state via properties
+                    box.innerText = text; 
+                    box.dispatchEvent(new Event('input', { bubbles: true }));
+                    
+                    // Trigger Send button immediately
+                    const btn = document.querySelector('button[type="button"][aria-label="Send"], div[role="button"][aria-label="Send"]');
+                    if (btn) {
+                        btn.click();
+                    } else {
+                        box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }));
+                    }
                     return true;
                 };
 
                 const pulse = () => {
-                    // 1. Health check
-                    const box = document.querySelector('div[role="textbox"], [contenteditable="true"]');
-                    if (!box || Date.now() - startTime > RELOAD_INTERVAL) { 
-                        log("Status: Reloading for stability...");
-                        window.location.reload(); 
-                        return; 
-                    }
+                    if (Date.now() - startTime > RELOAD_INTERVAL) { window.location.reload(); return; }
 
-                    // 2. Cycle logic
                     if (count >= 5) {
                         count = 0;
-                        log("Status: 60s rest break.");
-                        setTimeout(pulse, 60000);
+                        setTimeout(pulse, 30000); // Reduced rest
                         return;
                     }
 
-                    if (count < 4) {
-                        const block = Array(7).fill(line).join("\\n\\n");
-                        sendText(block);
-                    } else {
-                        sendText(sigText);
-                    }
-                    
+                    const text = (count < 4) ? Array(4).fill(msg).join("\\n\\n") : sig;
+                    fastSend(text);
                     count++;
-                    setTimeout(pulse, 2000 + Math.random() * 1000);
+                    setTimeout(pulse, 800); // 800ms heartbeat
                 };
                 pulse();
             }
         """
         
         page = await context.new_page()
-        page.on("console", lambda msg: print(f"[BROWSER] {msg.text}"))
-        
         sid = re.search(r'sessionid=([^;]+)', cookie).group(1) if 'sessionid=' in cookie else cookie
         await context.add_cookies([{'name': 'sessionid', 'value': sid.strip(), 'domain': '.instagram.com', 'path': '/', 'secure': True}])
         
-        await page.goto(f"https://www.instagram.com/direct/t/{target_id}/", wait_until="networkidle")
-        await page.wait_for_selector('div[role="textbox"], [contenteditable="true"]', timeout=30000)
+        await page.goto(f"https://www.instagram.com/direct/t/{target_id}/", wait_until="domcontentloaded")
+        await page.wait_for_selector('div[role="textbox"]', timeout=30000)
         await page.evaluate(strike_script, {"line": MESSAGE_LINE, "sig": SIGNATURE})
         
         await asyncio.sleep(86400)
