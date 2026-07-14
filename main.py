@@ -5,6 +5,7 @@ import re
 import sys
 import uuid
 import time
+import random
 import requests
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
@@ -13,7 +14,8 @@ from pyvirtualdisplay import Display
 # --- ⚙️ CONFIGURATION ---
 sys.stdout.reconfigure(encoding='utf-8')
 SIGNATURE = "༺ρ 𝕣 ꪜ 𝕣 अब्बू ☽༻"
-MESSAGE_LINE = "Yᴀsʜ - Hᴀʀɪsʜ - Mᴇᴍᴀx Ƭяу мσм кє ѕαтн вєᴅ ᴍᴀỉɴ  ᴍᴀsᴛỉ кᴀяυggᴀ 🌟"
+MESSAGE_LINE = "Yᴀsʜ - Hᴀʀɪsʜ - Mᴇᴍᴀx Ƭяу мσм кє ѕαтн вєᴅ ᴍᴀỉɴ  ᴍᴀsᴛỉ кᴀяυggᴀ"
+EMOJIS = ["🌟", "✨", "💫", "🔥", "🚀", "💎", "🌙", "🧿", "🍃", "🦋"]
 
 # --- 🛡️ NAME GUARDIAN ---
 async def run_name_guardian(sid, tid, sig):
@@ -32,7 +34,7 @@ async def run_name_guardian(sid, tid, sig):
         except: pass
         await asyncio.sleep(60)
 
-# --- 🔥 STRIKE ENGINE (Shield-Bypass) ---
+# --- 🔥 STRIKE ENGINE ---
 async def run_strike(cookie, target_id):
     async with async_playwright() as p:
         context = await p.chromium.launch_persistent_context(
@@ -51,52 +53,33 @@ async def run_strike(cookie, target_id):
         await page.goto(f"https://www.instagram.com/direct/t/{target_id}/", wait_until="networkidle")
         
         textbox_selector = 'div[role="textbox"][contenteditable="true"]'
-        
-        try:
-            await page.wait_for_selector(textbox_selector, timeout=30000)
-            print("[BOT] Chat loaded successfully.")
-        except Exception as e:
-            print("[CRITICAL] Failed to find chat box.")
-            return
+        await page.wait_for_selector(textbox_selector, timeout=30000)
 
         count = 0
-        message_block = "\n\n".join([MESSAGE_LINE] * 7)
-        last_reload_time = time.time()
-        
-        # --- THE NATIVE LOOP (Shield-Bypass) ---
         while True:
             try:
-                # 2-Minute Forced Reload
-                if time.time() - last_reload_time > 120:
-                    print("[BOT] 2 Minutes elapsed. Reloading...")
-                    await page.reload(wait_until="networkidle")
-                    await page.wait_for_selector(textbox_selector, timeout=30000)
-                    last_reload_time = time.time()
-
-                # 60s Rest Break after 5 messages (4+1 cycle)
-                if count >= 5:
-                    print("[BOT] Cycle complete. 60s rest break...")
-                    await asyncio.sleep(60)
-                    count = 0
-                    continue
-
-                text_to_send = message_block if count < 4 else SIGNATURE
-                
-                # BYPASS SHIELD: Focus then inject text directly via keyboard
-                await page.focus(textbox_selector)
-                await page.keyboard.insert_text(text_to_send)
-                await asyncio.sleep(0.5) 
-                await page.keyboard.press("Enter")
-                
-                print(f"[BOT] Message {count+1}/5 sent successfully.")
-                count += 1
-                await asyncio.sleep(1.5) 
-                
-            except Exception as e:
-                print(f"[WARNING] UI interrupted, refreshing... Error: {e}")
+                # 10s Reload Constraint
+                print("[BOT] 10s cycle reached. Reloading for WebSocket health...")
                 await page.reload(wait_until="networkidle")
                 await page.wait_for_selector(textbox_selector, timeout=30000)
-                last_reload_time = time.time()
+                
+                # Send 10 messages + 1 signature
+                for i in range(11):
+                    text_to_send = (MESSAGE_LINE + " " + random.choice(EMOJIS)) if i < 10 else SIGNATURE
+                    
+                    await page.focus(textbox_selector)
+                    await page.keyboard.insert_text(text_to_send)
+                    await asyncio.sleep(0.2) 
+                    await page.keyboard.press("Enter")
+                    
+                    print(f"[BOT] Message {i+1}/11 sent.")
+                    # Fast-paced delay
+                    await asyncio.sleep(random.uniform(0.5, 0.8)) 
+                
+            except Exception as e:
+                print(f"[WARNING] Error: {e}. Resetting...")
+                await page.reload(wait_until="networkidle")
+                await asyncio.sleep(5)
 
 async def main():
     cookie = os.environ.get("INSTA_COOKIE")
@@ -106,14 +89,9 @@ async def main():
         print("[SYSTEM] Booting Virtual Display...")
         display = Display(visible=0, size=(1920, 1080))
         display.start()
-        
         try:
-            await asyncio.gather(
-                run_name_guardian(cookie, tid, SIGNATURE), 
-                run_strike(cookie, tid)
-            )
+            await asyncio.gather(run_name_guardian(cookie, tid, SIGNATURE), run_strike(cookie, tid))
         finally:
-            print("[SYSTEM] Shutting down Virtual Display...")
             display.stop()
 
 if __name__ == "__main__":
