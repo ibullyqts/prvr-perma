@@ -10,41 +10,42 @@ permissions:
 jobs:
   run-integrated-engine:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Install Dependencies
-      run: |
-        pip install playwright playwright-stealth httpx requests
-        playwright install chromium
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          pip install playwright playwright-stealth
+          playwright install chromium
 
-    - name: 🔥 Run Phoenix Integrated Engine
-      timeout-minutes: 300 
-      env:
-        PYTHONIOENCODING: utf-8
-        INSTA_COOKIE: ${{ secrets.INSTA_COOKIE }}
-        TARGET_THREAD_ID: ${{ secrets.TARGET_THREAD_ID }}
-        TARGET_NAME: ${{ secrets.TARGET_NAME }}
-      run: |
-        python -u main.py
+      - name: 🔥 Run Phoenix Integrated Engine
+        timeout-minutes: 300 
+        env:
+          PYTHONIOENCODING: utf-8
+          INSTA_COOKIE: ${{ secrets.INSTA_COOKIE }}
+          TARGET_THREAD_ID: ${{ secrets.TARGET_THREAD_ID }}
+          TARGET_NAME: ${{ secrets.TARGET_NAME }}
+        run: |
+          python -u main.py
 
-    - name: Trigger Next Run
-      if: ${{ !cancelled() }}
-      env:
-        GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      run: |
-        # Wait 10 minutes between full sessions for stability
-        sleep 600
-        curl -L \
-          -X POST \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer $GH_TOKEN" \
-          "https://api.github.com/repos/${{ github.repository }}/actions/workflows/main.yml/dispatches" \
-          -d '{"ref":"main"}'
+      - name: Trigger Next Run
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: |
+          sleep 600
+          # Ensure this filename matches the actual filename of this YAML file
+          curl -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/YOUR_FILENAME.yml/dispatches" \
+            -d '{"ref":"main"}'
