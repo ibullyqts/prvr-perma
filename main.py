@@ -14,8 +14,9 @@ from pyvirtualdisplay import Display
 # --- ⚙️ CONFIGURATION ---
 sys.stdout.reconfigure(encoding='utf-8')
 SIGNATURE = "༺ρ 𝕣 ꪜ 𝕣 अब्बू ☽༻"
-MESSAGE_LINE = "Yᴀsʜ - Hᴀʀɪsʜ - Mᴇᴍᴀx Ƭяу мσм кє ѕαтн вєᴅ ᴍᴀỉɴ  ᴍᴀsᴛỉ кᴀяυggᴀ"
-EMOJIS = ["🌟", "✨", "💫", "🔥", "🚀", "💎", "🌙", "🧿", "🍃", "🦋"]
+# Base message text
+BASE_TEXT = "Yᴀsʜ - Hᴀʀɪsʜ - Mᴇᴍᴀx Ƭяу мσм кє ѕαтн вєᴅ ᴍᴀỉɴ  ᴍᴀsᴛỉ кᴀяυggᴀ"
+EMOJIS = ["🔥", "🌟", "✨", "💫", "🚀", "💎", "🌙", "🧿", "🍃", "🦋"]
 
 # --- 🛡️ NAME GUARDIAN ---
 async def run_name_guardian(sid, tid, sig):
@@ -55,25 +56,30 @@ async def run_strike(cookie, target_id):
         textbox_selector = 'div[role="textbox"][contenteditable="true"]'
         await page.wait_for_selector(textbox_selector, timeout=30000)
 
-        count = 0
         while True:
             try:
-                # 10s Reload Constraint
                 print("[BOT] 10s cycle reached. Reloading for WebSocket health...")
                 await page.reload(wait_until="networkidle")
                 await page.wait_for_selector(textbox_selector, timeout=30000)
                 
-                # Send 10 messages + 1 signature
+                # Send 10 blocks + 1 signature
                 for i in range(11):
-                    text_to_send = (MESSAGE_LINE + " " + random.choice(EMOJIS)) if i < 10 else SIGNATURE
+                    if i < 10:
+                        # Select a random emoji for this specific block
+                        current_emoji = random.choice(EMOJIS)
+                        # Build a line containing the text and the emoji
+                        single_line = f"{BASE_TEXT} {current_emoji}"
+                        # Multiply it into a 7-line block structure
+                        text_to_send = "\n\n".join([single_line] * 7)
+                    else:
+                        text_to_send = SIGNATURE
                     
                     await page.focus(textbox_selector)
                     await page.keyboard.insert_text(text_to_send)
                     await asyncio.sleep(0.2) 
                     await page.keyboard.press("Enter")
                     
-                    print(f"[BOT] Message {i+1}/11 sent.")
-                    # Fast-paced delay
+                    print(f"[BOT] Message block {i+1}/11 sent.")
                     await asyncio.sleep(random.uniform(0.5, 0.8)) 
                 
             except Exception as e:
