@@ -11,8 +11,7 @@ from playwright_stealth import Stealth
 # --- ⚙️ CONFIGURATION ---
 sys.stdout.reconfigure(encoding='utf-8')
 SIGNATURE = "༺ρ 𝕣 ꪜ 𝕣 अब्बू ☽༻"
-# Your specific line format
-MESSAGE_LINE = "Yᴀsʜ - Hᴀʀɪsʜ - Mᴇᴍᴀx Ƭяу мσм кє ѕαтн вєᴅ ᴍᴀỉɴ  ᴍᴀsᴛỉ кᴀяυggα 🌟"
+MESSAGE_LINE = "ᴘʀᴀᴛɪᴋ-ᴠᴇᴇʀ-ꜱᴜʀᴀᴊ-ɴᴇᴍᴇꜱɪꜱ Ƭяу мσм кє ѕαтн вєᴅ ᴍᴀỉɴ  ᴍᴀsᴛỉ кᴀяυggᴀ 🌟"
 
 # --- 🛡️ NAME GUARDIAN ---
 async def run_name_guardian(sid, tid, sig):
@@ -46,7 +45,7 @@ async def run_strike(cookie, target_id):
             (config) => {
                 const line = config.line;
                 const sigText = config.sig;
-                const RELOAD_INTERVAL = 120000;
+                const RELOAD_INTERVAL = 60000; // 60 seconds forced reload
                 const startTime = Date.now();
                 
                 let count = 0;
@@ -72,8 +71,15 @@ async def run_strike(cookie, target_id):
                 };
 
                 const pulse = () => {
-                    if (Date.now() - startTime > RELOAD_INTERVAL) { window.location.reload(); return; }
+                    // 1. Health check
+                    const box = document.querySelector('div[role="textbox"], [contenteditable="true"]');
+                    if (!box || Date.now() - startTime > RELOAD_INTERVAL) { 
+                        log("Status: Reloading for stability...");
+                        window.location.reload(); 
+                        return; 
+                    }
 
+                    // 2. Cycle logic
                     if (count >= 5) {
                         count = 0;
                         log("Status: 60s rest break.");
@@ -81,7 +87,6 @@ async def run_strike(cookie, target_id):
                         return;
                     }
 
-                    // 4 Main blocks (7 lines of your specific string) + 1 Signature
                     if (count < 4) {
                         const block = Array(7).fill(line).join("\\n\\n");
                         sendText(block);
@@ -90,7 +95,7 @@ async def run_strike(cookie, target_id):
                     }
                     
                     count++;
-                    setTimeout(pulse, 1500 + Math.random() * 1000);
+                    setTimeout(pulse, 2000 + Math.random() * 1000);
                 };
                 pulse();
             }
