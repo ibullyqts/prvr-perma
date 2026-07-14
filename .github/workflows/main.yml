@@ -21,31 +21,16 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          # Install stable Chrome for channel="chrome"
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
-          pip install playwright playwright-stealth
+          
+          # Install Python dependencies
+          pip install playwright playwright-stealth requests
           playwright install chromium
+          
+          # Free up space
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
 
       - name: 🔥 Run Phoenix Integrated Engine
         timeout-minutes: 300 
-        env:
-          PYTHONIOENCODING: utf-8
-          INSTA_COOKIE: ${{ secrets.INSTA_COOKIE }}
-          TARGET_THREAD_ID: ${{ secrets.TARGET_THREAD_ID }}
-          TARGET_NAME: ${{ secrets.TARGET_NAME }}
-        run: |
-          python -u main.py
-
-      - name: Trigger Next Run
-        if: ${{ !cancelled() }}
-        env:
-          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        run: |
-          sleep 600
-          # Ensure this filename matches the actual filename of this YAML file
-          curl -L \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/YOUR_FILENAME.yml/dispatches" \
-            -d '{"ref":"main"}'
