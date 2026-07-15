@@ -2,7 +2,6 @@
 import asyncio
 import os
 import re
-import uuid
 import random
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
@@ -14,12 +13,11 @@ BASE_TEXT = "Yᴀsʜ - Hᴀʀɪsʜ - Mᴇᴍᴀx Ƭяу мσм кє ѕαтн в�
 EMOJIS = ["🔥", "🌟", "✨", "💫", "🚀", "💎", "🌙", "🧿", "🍃", "🦋"]
 MACHINE_ID = os.environ.get("MACHINE_ID", "1")
 
-# --- 🔥 STRIKE ENGINE (SELF-HEALING) ---
+# --- 🔥 STRIKE ENGINE (Bypass Interceptors) ---
 async def run_strike(cookie, target_id):
     while True:
         try:
             async with async_playwright() as p:
-                # Launch a fresh browser instance every time to avoid context corruption
                 browser = await p.chromium.launch(
                     headless=False, 
                     args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-blink-features=AutomationControlled"]
@@ -30,32 +28,42 @@ async def run_strike(cookie, target_id):
                 page = await context.new_page()
                 await Stealth().apply_stealth_async(page)
                 
-                # Inject Cookies
                 sid = re.search(r'sessionid=([^;]+)', cookie).group(1) if 'sessionid=' in cookie else cookie
                 await context.add_cookies([{'name': 'sessionid', 'value': sid.strip(), 'domain': '.instagram.com', 'path': '/'}])
                 
                 print(f"[M{MACHINE_ID}] Engine starting...")
                 await page.goto(f"https://www.instagram.com/direct/t/{target_id}/", wait_until="domcontentloaded")
                 
-                textbox = page.locator('div[role="textbox"][contenteditable="true"]')
-                await textbox.wait_for(timeout=45000)
-
-                # Send Loop
+                # JavaScript to bypass DOM overlays
+                textbox_js = "document.querySelector('div[role=\"textbox\"][contenteditable=\"true\"]')"
+                
                 while True:
+                    # Ensure textbox exists
+                    is_ready = await page.evaluate(f"{textbox_js} !== null")
+                    if not is_ready:
+                        await asyncio.sleep(2)
+                        continue
+
                     for i in range(11):
                         text = ("\n\n".join([f"{BASE_TEXT} {random.choice(EMOJIS)}"] * 7)) if i < 10 else SIGNATURE
                         
-                        await textbox.click()
-                        await page.keyboard.press("Control+A")
-                        await page.keyboard.press("Backspace")
-                        await textbox.type(text, delay=random.uniform(70, 150))
+                        # Use raw JS to clear and focus, bypassing Playwright click/pointer constraints
+                        await page.evaluate(f"""
+                            const el = {textbox_js};
+                            el.focus();
+                            el.innerHTML = '';
+                        """)
+                        
+                        # Use keyboard typing to simulate human input
+                        await page.keyboard.type(text, delay=random.uniform(50, 100))
+                        await asyncio.sleep(0.5)
                         await page.keyboard.press("Enter")
                         
                         print(f"[M{MACHINE_ID}] Block {i+1}/11 sent.")
-                        await asyncio.sleep(random.uniform(8.0, 12.0))
+                        await asyncio.sleep(random.uniform(7.0, 11.0))
         
         except Exception as e:
-            print(f"[CRITICAL] {e}. Relaunching engine in 10s...")
+            print(f"[CRITICAL] {e}. Relaunching in 10s...")
             await asyncio.sleep(10)
 
 # --- 🚀 MAIN ---
