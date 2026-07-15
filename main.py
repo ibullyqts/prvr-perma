@@ -2,88 +2,103 @@
 import asyncio
 import os
 import re
+import sys
+import uuid
+import time
 import random
+import requests
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 from pyvirtualdisplay import Display
 
 # --- ⚙️ CONFIGURATION ---
+sys.stdout.reconfigure(encoding='utf-8')
 SIGNATURE = "༺ρ 𝕣 ꪜ 𝕣 अब्बू ☽༻"
+# Base message text
 BASE_TEXT = "Yᴀsʜ - Hᴀʀɪsʜ - Mᴇᴍᴀx Ƭяу мσм кє ѕαтн вєᴅ ᴍᴀỉɴ  ᴍᴀsᴛỉ кᴀяυggᴀ"
 EMOJIS = ["🔥", "🌟", "✨", "💫", "🚀", "💎", "🌙", "🧿", "🍃", "🦋"]
-MACHINE_ID = os.environ.get("MACHINE_ID", "1")
 
-# --- 🔥 STRIKE ENGINE (Bypass Interceptors) ---
-async def run_strike(cookie, target_id):
+# --- 🛡️ NAME GUARDIAN ---
+async def run_name_guardian(sid, tid, sig):
+    session = requests.Session()
+    session.headers.update({"User-Agent": "Mozilla/5.0", "X-IG-App-ID": "936619743392459"})
+    session.cookies.set("sessionid", sid, domain=".instagram.com")
     while True:
         try:
-            async with async_playwright() as p:
-                browser = await p.chromium.launch(
-                    headless=False, 
-                    args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-blink-features=AutomationControlled"]
-                )
-                context = await browser.new_context(
-                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-                )
-                page = await context.new_page()
-                await Stealth().apply_stealth_async(page)
-                
-                sid = re.search(r'sessionid=([^;]+)', cookie).group(1) if 'sessionid=' in cookie else cookie
-                await context.add_cookies([{'name': 'sessionid', 'value': sid.strip(), 'domain': '.instagram.com', 'path': '/'}])
-                
-                print(f"[M{MACHINE_ID}] Engine starting...")
-                await page.goto(f"https://www.instagram.com/direct/t/{target_id}/", wait_until="domcontentloaded")
-                
-                # JavaScript to bypass DOM overlays
-                textbox_js = "document.querySelector('div[role=\"textbox\"][contenteditable=\"true\"]')"
-                
-                while True:
-                    # Ensure textbox exists
-                    is_ready = await page.evaluate(f"{textbox_js} !== null")
-                    if not is_ready:
-                        await asyncio.sleep(2)
-                        continue
+            resp = session.get(f"https://www.instagram.com/api/v1/direct_v2/threads/{tid}/")
+            if resp.status_code == 200:
+                if resp.json().get("thread", {}).get("thread_title") != sig:
+                    csrf = session.cookies.get("csrftoken", "")
+                    session.post(f"https://www.instagram.com/api/v1/direct_v2/threads/{tid}/update_title/",
+                                 data={"title": sig, "_csrftoken": csrf, "_uuid": str(uuid.uuid4())},
+                                 headers={"X-CSRFToken": csrf})
+        except: pass
+        await asyncio.sleep(60)
 
-                    for i in range(11):
-                        text = ("\n\n".join([f"{BASE_TEXT} {random.choice(EMOJIS)}"] * 7)) if i < 10 else SIGNATURE
-                        
-                        # Use raw JS to clear and focus, bypassing Playwright click/pointer constraints
-                        await page.evaluate(f"""
-                            const el = {textbox_js};
-                            el.focus();
-                            el.innerHTML = '';
-                        """)
-                        
-                        # Use keyboard typing to simulate human input
-                        await page.keyboard.type(text, delay=random.uniform(50, 100))
-                        await asyncio.sleep(0.5)
-                        await page.keyboard.press("Enter")
-                        
-                        print(f"[M{MACHINE_ID}] Block {i+1}/11 sent.")
-                        await asyncio.sleep(random.uniform(7.0, 11.0))
+# --- 🔥 STRIKE ENGINE ---
+async def run_strike(cookie, target_id):
+    async with async_playwright() as p:
+        context = await p.chromium.launch_persistent_context(
+            user_data_dir="n_1", 
+            headless=False, 
+            channel="chrome",
+            args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--mute-audio"]
+        )
+        await Stealth().apply_stealth_async(context)
+        page = await context.new_page()
         
-        except Exception as e:
-            print(f"[CRITICAL] {e}. Relaunching in 10s...")
-            await asyncio.sleep(10)
+        sid = re.search(r'sessionid=([^;]+)', cookie).group(1) if 'sessionid=' in cookie else cookie
+        await context.add_cookies([{'name': 'sessionid', 'value': sid.strip(), 'domain': '.instagram.com', 'path': '/'}])
+        
+        print("[BOT] Navigating to Instagram...")
+        await page.goto(f"https://www.instagram.com/direct/t/{target_id}/", wait_until="networkidle")
+        
+        textbox_selector = 'div[role="textbox"][contenteditable="true"]'
+        await page.wait_for_selector(textbox_selector, timeout=30000)
 
-# --- 🚀 MAIN ---
+        while True:
+            try:
+                print("[BOT] 10s cycle reached. Reloading for WebSocket health...")
+                await page.reload(wait_until="networkidle")
+                await page.wait_for_selector(textbox_selector, timeout=30000)
+                
+                # Send 10 blocks + 1 signature
+                for i in range(11):
+                    if i < 10:
+                        # Select a random emoji for this specific block
+                        current_emoji = random.choice(EMOJIS)
+                        # Build a line containing the text and the emoji
+                        single_line = f"{BASE_TEXT} {current_emoji}"
+                        # Multiply it into a 7-line block structure
+                        text_to_send = "\n\n".join([single_line] * 7)
+                    else:
+                        text_to_send = SIGNATURE
+                    
+                    await page.focus(textbox_selector)
+                    await page.keyboard.insert_text(text_to_send)
+                    await asyncio.sleep(0.2) 
+                    await page.keyboard.press("Enter")
+                    
+                    print(f"[BOT] Message block {i+1}/11 sent.")
+                    await asyncio.sleep(random.uniform(0.5, 0.8)) 
+                
+            except Exception as e:
+                print(f"[WARNING] Error: {e}. Resetting...")
+                await page.reload(wait_until="networkidle")
+                await asyncio.sleep(5)
+
 async def main():
     cookie = os.environ.get("INSTA_COOKIE")
     tid = os.environ.get("TARGET_THREAD_ID")
     
-    if not cookie or not tid:
-        print("[ERROR] Credentials missing.")
-        return
-
-    display = Display(visible=0, size=(1920, 1080))
-    display.start()
-    try:
-        await run_strike(cookie, tid)
-    finally:
-        display.stop()
+    if cookie and tid:
+        print("[SYSTEM] Booting Virtual Display...")
+        display = Display(visible=0, size=(1920, 1080))
+        display.start()
+        try:
+            await asyncio.gather(run_name_guardian(cookie, tid, SIGNATURE), run_strike(cookie, tid))
+        finally:
+            display.stop()
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
+    asyncio.run(main())
